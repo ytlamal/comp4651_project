@@ -116,8 +116,11 @@ app.get('/',function(req, res){
 });
 var imgPath = './uploads/';
 
-app.post('/', upload.any(),cache, function(req,res){////cache used to pass video to redis 
-  
+app.post('/', upload.any(), function(req,res){////cache used to get video from redis  
+  data=fs.readFileSync(req.files[0].path);
+  app.set(req.files[0].originalname, data);
+
+  console.log('uploaded to redis')
   /////////useless as all pass to redis
   ///////////////////upload to mongodb start
   // if(!req.body && !req.files){
@@ -152,7 +155,7 @@ app.post('/', upload.any(),cache, function(req,res){////cache used to pass video
 
   // }
   ////////////////////upload to mongodb end
-
+  res.redirect('/');
 });
 
 app.post('/delete',function(req,res){////delete data from mongodb
