@@ -3,6 +3,8 @@ var multer = require('multer');
 bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var Detail = require('./models/detail');
+var image = require('./models/image');
+var user_process = require('./models/user_process');
 var dir = './uploads';
 const sharp = require("sharp");
 const fs = require("fs");
@@ -16,7 +18,7 @@ app.use("/output",express.static(path.join(__dirname, "output")));
 const tempFolder = './temp/';
 const outputFolder = './output/';
 /*var upload = multer({ dest: 'uploads/' });*/
-mongoose.connect(' mongodb://127.0.0.1:27017/my_datablase',{ useNewUrlParser: true , useUnifiedTopology: true});
+mongoose.connect(' mongodb://127.0.0.1:27017/comp4651',{ useNewUrlParser: true , useUnifiedTopology: true});
 
 ////redis 
 var redis = require('redis');
@@ -94,24 +96,20 @@ app.use(express.static('uploads'));
 app.get('/',function(req, res){
 	binimgfordata =[]
   ///////get data from mongodb start
-  Detail.find({}, function(err,data){
+  User_process.find({}, function(err,data){
   	console.log(data)
     if(err){
       console.log(err);
     }else{
-    	
-    	for(datas in data ){
-        binimg =[]
-    		
-        for(i in data[datas].data){
-          var str = 'data:image/jpeg;base64,'+ (new Buffer.from(data[datas].data[i].buffer)).toString('base64');  
-          binimg.push(str);
-        }
-
-    	 	binimgfordata.push(binimg)
+    	var names=[];
+    	for(i in data ){
+       var name = splitstring(data[i].username);
+       names.push(name);
+   
     	 }
  
-    	 res.render('index',{data:data,binimgfordata:binimgfordata,state:"showall"});//pass result to index.ejs
+       
+      res.render('index',{data:data,name:names,state:"showall"});
     }
   })
   ///////get data from mongodb end
@@ -126,54 +124,63 @@ app.post('/', upload.any(), function(req,res){////cache used to get video from r
   console.log('uploaded to redis')
   /////////useless as all pass to redis
   ///////////////////upload to mongodb start testing only start 
-  // if(!req.body && !req.files){
-  //   res.json({success: false});
-  // } else {    
-  //   var c;
-  //   Detail.findOne({},function(err,data){
-  //     console.log("into detail");
+if(!req.body && !req.files){
+    res.json({success: false});
+  } else {    
+    User_process.findOne({},function(err,data){
+        var user_process = new User_process({
+        username: req.files[0].originalname, //videoname 
+        status: "done", 
+        });
+       user_process.save(function(err, Person){
+        if(err)
+          console.log(err);
+        
 
-  //     if (data) {
-  //       console.log("if");
-  //       c = data.unique_id + 1;
-  //     }else{
-  //       c=1;
-  //     }
-     
-  //     var arrayofimg =[]
-  //     var imgdata=fs.readFileSync(req.files[0].path);
-  //     arrayofimg.push(imgdata);
-  //      ///////test binary array ////testing only start 
-  //     // for(var i=0;i<3;i++){
-  //     //     arrayofimg.push(imgdata);
-  //     // }
-  //     /////////testing only end
-  //     var detail = new Detail({
+      });
+    }).sort({_id: -1}).limit(1);
+    var name = splitstring(req.files[0].originalname);
+    var schema_name = "user_"+name;
+    var Images = mongoose.model(schema_name, image_Schema);
+    module.exports = Images;
 
-  //       unique_id:c,
-  //       Name: req.body.title,
-  //       //data:fs.readFileSync(req.files[0].path),
-  //       data:arrayofimg,
-  //       });
+    var imagedata = (new Buffer.from(data)).toString('base64');
+    Images.findOne({},function(err,data){
+      var image = new Images({
+        "frameno": "1", //frame number
+        "name": req.files[0].originalname, //image name
+        "userid": "5dd3652b51c27c38305fd417", //user object id string
+        "base64": imagedata, //base64 encoded jpg,
+      });
+      image.save(function(err, Person){
+        if(err)
+          console.log(err);
+        
+      });
+    }).sort({_id: -1}).limit(1);
+   Images.findOne({},function(err,data){
+      var image = new Images({
+        "frameno": "2", //frame number
+        "name": req.files[0].originalname, //image name
+        "userid": "5dd3652b51c27c38305fd417", //user object id string
+        "base64": imagedata, //base64 encoded jpg,
+      });
+      image.save(function(err, Person){
+        if(err)
+          console.log(err);
+        
+      });
+    }).sort({_id: -1}).limit(1);
+  }
+  //////////////////////
 
-  //      detail.save(function(err, Person){
-  //       if(err)
-  //         console.log(err);
-  //       else
-  //         res.redirect('/');
-
-  //     });
-
-  //   }).sort({_id: -1}).limit(1);
-
-  // }
   ////////////////////upload to mongodb end testing only end
   res.redirect('/');
 });
 
 app.post('/delete',function(req,res){////delete data from mongodb
 
-   Detail.findByIdAndRemove(req.body.prodId,function(err, data) {
+   User_process.findByIdAndRemove(req.body.prodId,function(err, data) {
 
     //console.log(data);
 
@@ -186,26 +193,24 @@ app.get('/:name', function(req, res) {
     binimgfordata =[];
   // Then you can use the value of the id with req.params.id
   // So you use it to get the data from your database:
- 
+    var schema_name = "user_"+req.params.name;
+    var Images = mongoose.model(schema_name, image_Schema);
+    //module.exports = Images;
   //console.log(req.params.name.toString);
-  Detail.find({"Name":req.params.name}, function(err,data){
+  Images.find({}, function(err,data){
     console.log(data)
     if(err){
       console.log(err);
     }else{
-      
-      for(datas in data ){
-        binimg =[]
-        
-        for(i in data[datas].data){
-          var str = 'data:image/jpeg;base64,'+ (new Buffer.from(data[datas].data[i].buffer)).toString('base64');  
-          binimg.push(str);
-        }
+      var binimg =[]
+      for(i in data ){
 
-        binimgfordata.push(binimg)
+          var str = 'data:image/jpeg;base64,'+ data[i].base64;  
+          binimg.push(str);
+
        }
  
-       res.render('index',{data:data,binimgfordata:binimgfordata,state:"showone"});//pass result to index.ejs
+       res.render('index',{name:schema_name,data:data,binimgfordata:binimg,state:"showone"});//pass result to index.ejs
     }
   })
 });
@@ -214,7 +219,11 @@ const events = require('events');
 var zip = require('bestzip');
 const myEmitter = new events.EventEmitter();
 var arrayofimage=[];
+function splitstring(str){
 
+  var res = str.split(".");
+  return res[0];
+}
 function base64_encode(file) {//////i copied from web and not sure it works 
     // read binary data
     var bitmap = fs.readFileSync(file);

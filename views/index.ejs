@@ -19,12 +19,12 @@
 			
 			<form method="post" enctype="multipart/form-data" action="/">
 				<div class="form-group row" >
-					<div class="col-md-1" style="float: left;">
+				<!-- 	<div class="col-md-1" style="float: left;">
 						<label for="title" class="col-sm-2 col-form-label" >Video Title</label>
 					</div>
 					<div class="col-sm-3" style="float: left;">
 						<input type="text" name="title" placeholder="title" class="form-control">
-					</div>
+					</div> -->
 				</div>
 				<div class="form-group row" >
 					<div class="col-lg-2" style="float: left;">
@@ -44,31 +44,25 @@
 				</div>
 			</form>
 			<% }else{ %>
-				<h2>Show <%= data[0].Name %></h2>			
+				<h2>Show <%=name  %></h2>			
 			<% } %>
 						
 		</div>
 		<div class="row">
 			<% for (var i = 0; i < data.length; i++) { %>
-					<script>
-					//alert('<%=data[i].data%>.hexToBase64');
-					</script>
+			<% if(state=="showall"){%>		
 			<div class="col-md-4">
 				<div class="thumbnail">
 					<div class="caption">
 						
-						<% if(state=="showall"){%>
-						<h3><%= data[i].Name %></h3>
-						<a href="/<%= data[i].Name %>">Visit <%= data[i].Name %>!</a>
+						
+						<h3><%= name[i] %>:<%= data[i].status %></h3>
+						<a href="/<%= name[i] %>">Visit <%= name %>!</a>
 						<!-- <h3><%= data[i]._id %></h3> -->
 						<!-- <img src="<%= data[i].image1 %>" class = "img-thumbnail">
 						<img src="<%= data[i].image2 %>" class = "img-thumbnail"> -->
 						
-						<% }else{ %>
-							<% for (var j = 0; j < binimgfordata[i].length; j++) { %>
-							<img src="<%= binimgfordata[i][j] %>" class = "img-thumbnail">
-							<% } %>
-						<% } %>
+						
 						
 						<form method="post" action="/delete">
 							<input id="prodId" name="prodId" type="hidden" value="<%= data[i]._id %>">
@@ -77,6 +71,11 @@
 					</div>
 				</div>
 			</div>
+			<% }else{ %>
+				
+				<img src="<%= binimgfordata[i] %>" class = "img-thumbnail">
+			
+			<% } %>
 			<% } %>
 		</div>
 	</div>
