@@ -1,146 +1,250 @@
-const express = require("express");
-const multer = require("multer");
+var express = require('express');
+var multer = require('multer');
+bodyParser = require('body-parser');
+var mongoose = require('mongoose');
+var Detail = require('./models/detail');
+var dir = './uploads';
 const sharp = require("sharp");
 const fs = require("fs");
 const path = require('path');
 var ffmpeg = require('ffmpeg');
-//import {PythonShell} from 'python-shell';
+
 const app = express();
 app.use("/static",express.static(path.join(__dirname, "static")));
 app.use("/temp",express.static(path.join(__dirname, "temp")));
+app.use("/output",express.static(path.join(__dirname, "output")));
 const tempFolder = './temp/';
-const fileFilter = function(req , file , cb){
-	const allowtypes = [
-	"image/jpeg",
-	// "image/png",
-	// "image/gif",
-	"video/mp4",
-	"video/quicktime"
-	];
-	
-	if(!allowtypes.includes(file.mimetype)){
-		const error = new Error("Wrong file type");
-		error.code = "LIMIT_FILE_TYPES";
-		return cb(error,false);
-	}
-	cb(null,true);
+const outputFolder = './output/';
+/*var upload = multer({ dest: 'uploads/' });*/
+mongoose.connect(' mongodb://127.0.0.1:27017/my_datablase',{ useNewUrlParser: true , useUnifiedTopology: true});
+
+////redis 
+var redis = require('redis');
+
+
+//const PORT = process.env.PORT || 5000; //client
+const REDIS_PORT = process.env.PORT || 6379;
+
+const client = redis.createClient(REDIS_PORT);
+
+/////redis 
+
+
+// Cache middleware used to get cached data only so is useless for this project 
+function cache(req, res, next) {
+	//console.log(req)
+	console.log("cache")
+	console.log(req.files[0].originalname)
+  const { imgname } = req.files[0].originalname;
+
+  client.get(req.files[0].originalname, (err, data) => {
+  	console.log(data)
+    if (err) throw err;
+
+    if (data !== null) {
+    	console.log("redis success")//i use this to check whether success or not
+       
+    } else {
+      next();
+    }
+  });
 }
-
-
-var storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads');
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.fieldname + '-' + Date.now() 
-    	+path.extname(file.originalname)
-    	);
-  }
-})
-const upload = multer ({
+/////////////////////////// upload setting 
+const MAX_SIZE = 512000;
+var upload = multer({
 	dest: './uploads/',
-	fileFilter,
-	//limits:{
-	//	fileSize: MAX_SIZE
-	//},
-  	storage: storage
+	storage: multer.diskStorage({
 
-});
-const pureUpload = multer({
-	dest:"./uploads"
 
-});
-app.post("/upload", upload.single('file') ,(req,res) => {
+  destination: function (req, file, callback) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+    callback(null, 'uploads');
+  },
+  limits:{
+   fileSize: MAX_SIZE
+  },
+  filename: function (req, file, callback) 
+  { callback(null, file.originalname );}
 
-	res.json({ file: req.file});
-	
-	//res.json({cool:"dddddd"});
-});
-app.post("/multiple", upload.array('files') ,(req,res) => {
+}),
 
-	res.json({ files: req.files});
-	
+/////////////////////  filter wrong file type
+
+fileFilter: function(req, file, callback) {
+  var ext = path.extname(file.originalname)
+  if (ext !== '.png' && ext !== '.jpg' && ext !== '.gif' && ext !== '.jpeg'&& ext !== '.mp4'&& ext !== '.mov') {
+    return callback(/*res.end('Only images are allowed')*/ null, false)
+  }
+  callback(null, true)
+}
 });
-const { spawn } = require('child_process');
+
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+app.use(express.static('uploads'));
+
+
+app.get('/',function(req, res){
+	binimgfordata =[]
+  ///////get data from mongodb start
+  Detail.find({}, function(err,data){
+  	console.log(data)
+    if(err){
+      console.log(err);
+    }else{
+    	
+    	for(datas in data ){
+        binimg =[]
+    		
+        for(i in data[datas].data){
+          var str = 'data:image/jpeg;base64,'+ (new Buffer.from(data[datas].data[i].buffer)).toString('base64');  
+          binimg.push(str);
+        }
+
+    	 	binimgfordata.push(binimg)
+    	 }
+ 
+    	 res.render('index',{data:data,binimgfordata:binimgfordata,state:"showall"});//pass result to index.ejs
+    }
+  })
+  ///////get data from mongodb end
+  
+});
+var imgPath = './uploads/';
+
+app.post('/', upload.any(), function(req,res){////cache used to get video from redis  
+  data=fs.readFileSync(req.files[0].path); //get binary data
+  app.set(req.files[0].originalname, data); //upload to redis
+
+  console.log('uploaded to redis')
+  /////////useless as all pass to redis
+  ///////////////////upload to mongodb start testing only start 
+  if(!req.body && !req.files){
+    res.json({success: false});
+  } else {    
+    var c;
+    Detail.findOne({},function(err,data){
+      console.log("into detail");
+
+      if (data) {
+        console.log("if");
+        c = data.unique_id + 1;
+      }else{
+        c=1;
+      }
+     
+      var arrayofimg =[]
+      var imgdata=fs.readFileSync(req.files[0].path);
+      arrayofimg.push(imgdata);
+       ///////test binary array ////testing only start 
+      for(var i=0;i<3;i++){
+          arrayofimg.push(imgdata);
+      }
+      /////////testing only end
+      var detail = new Detail({
+
+        unique_id:c,
+        Name: req.body.title,
+        //data:fs.readFileSync(req.files[0].path),
+        data:arrayofimg,
+        });
+
+       detail.save(function(err, Person){
+        if(err)
+          console.log(err);
+        else
+          res.redirect('/');
+
+      });
+
+    }).sort({_id: -1}).limit(1);
+
+  }
+  ////////////////////upload to mongodb end testing only end
+  //res.redirect('/');
+});
+
+app.post('/delete',function(req,res){////delete data from mongodb
+
+   Detail.findByIdAndRemove(req.body.prodId,function(err, data) {
+
+    //console.log(data);
+
+   })
+  res
+  .redirect('/');
+});
+app.get('/:name', function(req, res) {
+  console.log(req.params.name);
+    binimgfordata =[];
+  // Then you can use the value of the id with req.params.id
+  // So you use it to get the data from your database:
+ 
+  //console.log(req.params.name.toString);
+  Detail.find({"Name":req.params.name}, function(err,data){
+    console.log(data)
+    if(err){
+      console.log(err);
+    }else{
+      
+      for(datas in data ){
+        binimg =[]
+        
+        for(i in data[datas].data){
+          var str = 'data:image/jpeg;base64,'+ (new Buffer.from(data[datas].data[i].buffer)).toString('base64');  
+          binimg.push(str);
+        }
+
+        binimgfordata.push(binimg)
+       }
+ 
+       res.render('index',{data:data,binimgfordata:binimgfordata,state:"showone"});//pass result to index.ejs
+    }
+  })
+});
+const { spawn} = require('child_process');
 const events = require('events');
-
+var zip = require('bestzip');
 const myEmitter = new events.EventEmitter();
 var arrayofimage=[];
-function doA(file_path){
-	return new Promise(function(resolve,reject){
-		child = spawn('python',["./frame.py", file_path ],{detached: true});
-		child.on('close', function(code,signal) {
-		    resolve();
-		    
-		});
-		
-	})
+
+function base64_encode(file) {//////i copied from web and not sure it works 
+    // read binary data
+    var bitmap = fs.readFileSync(file);
+    // convert binary data to base64 encoded string
+    return new Buffer(bitmap).toString('base64');
 }
-function doB(){
-	return new Promise(function(resolve,reject){
-		console.log('start count')
-		resolve(fs.readdirSync(tempFolder).forEach(file => {
-			   		var newfile = `/temp/${file}`
-			   		arrayofimage.push(newfile);
-				    //console.log(newfile);
-    	}))
-	})
+function base64_decode(base64str, file) {//////i copied from web and not sure it works 
+    // create buffer object from base64 encoded string, it is important to tell the constructor that the string is base64 encoded
+    var bitmap = new Buffer(base64str, 'base64');
+    // write buffer to file
+    fs.writeFileSync(file, bitmap);
+    console.log('******** File created from base64 encoded string ********');
 }
-async function video_to_frame(file_path,res){
 
-	console.log("start python process ")
-	await doA(file_path)
-	console.log("finish a")
-	await doB()
+var port = 4000;
+app.listen( port, function(){ console.log('listening on port '+port); } );
 
-	console.log("finish b")
-	//process.kill("SIGINT");
-	//
-	
-	return ;
 
-	
-	
-}
-app.post("/dropzone", upload.single('file') ,async (req,res) => {
-	try{
-		
-		console.log(req.file.path);
-		
-		await video_to_frame(req.file.path,res);
-		//res.json({file:arrayofimage});
-		//fs.closeSync();
-		child.unref();
-		res.json("ok");
 
-		//await return;
-		console.log('ok');
 
-		//fs.close();
-		//process.exit(0); 
-		return ;
-		
-		}catch(err){
-			res.status(422).json({err});
-			console.log(err.code);
-			console.log(err.msg);
-		}
-		return;
-});
-app.use(function(err,req,res,next) {
-	if(err.code ==="LIMIT_FILE_TYPES"){
-		res.status(422).json({error:"only images are allowed"});
-		return;
-	}
-	if(err.code ==="LIMIT_FILE_SIZE"){
-		res.status(422).json({error:`too large Max size is ${MAX_SIZE/1000}Kb`});
-		return;
-	}
-});
 
-app.get('/uploads', (req, res) => {
 
-	
-});
 
-app.listen(4000, ()=> console.log("Running on location:4000"));
+
+
+
+
+
+
+
+
+
+
