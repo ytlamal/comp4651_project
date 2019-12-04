@@ -92,7 +92,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static('uploads'));
 
-
+////////main page
 app.get('/',function(req, res){
 	binimgfordata =[]
   ///////get data from mongodb start
@@ -107,8 +107,6 @@ app.get('/',function(req, res){
        names.push(name);
    
     	 }
- 
-       
       res.render('index',{data:data,name:names,state:"showall"});
     }
   })
@@ -117,7 +115,7 @@ app.get('/',function(req, res){
 });
 var imgPath = './uploads/';
 
-app.post('/', upload.any(), function(req,res){////cache used to get video from redis  
+app.post('/', upload.any(), function(req,res){////cache used to get video from redis so i dont add it here 
   data=fs.readFileSync(req.files[0].path); //get binary data
   app.set(req.files[0].originalname, data); //upload to redis
 
@@ -188,15 +186,14 @@ app.post('/delete',function(req,res){////delete data from mongodb
   res
   .redirect('/');
 });
+////////////show specify collection
 app.get('/:name', function(req, res) {
   console.log(req.params.name);
     binimgfordata =[];
-  // Then you can use the value of the id with req.params.id
-  // So you use it to get the data from your database:
+ 
     var schema_name = "user_"+req.params.name;
     var Images = mongoose.model(schema_name, image_Schema);
-    //module.exports = Images;
-  //console.log(req.params.name.toString);
+   
   Images.find({}, function(err,data){
     console.log(data)
     if(err){
