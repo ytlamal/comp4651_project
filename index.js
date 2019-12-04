@@ -108,7 +108,7 @@ app.get('/',function(req, res){
     	 	binimgfordata.push(binimg)
     	 }
  
-    	 res.render('index',{data:data,binimgfordata:binimgfordata});//pass result to index.ejs
+    	 res.render('index',{data:data,binimgfordata:binimgfordata,state:"showall"});//pass result to index.ejs
     }
   })
   ///////get data from mongodb end
@@ -123,39 +123,46 @@ app.post('/', upload.any(), function(req,res){////cache used to get video from r
   console.log('uploaded to redis')
   /////////useless as all pass to redis
   ///////////////////upload to mongodb start
-  // if(!req.body && !req.files){
-  //   res.json({success: false});
-  // } else {    
-  //   var c;
-  //   Detail.findOne({},function(err,data){
-  //     console.log("into detail");
+  if(!req.body && !req.files){
+    res.json({success: false});
+  } else {    
+    var c;
+    Detail.findOne({},function(err,data){
+      console.log("into detail");
 
-  //     if (data) {
-  //       console.log("if");
-  //       c = data.unique_id + 1;
-  //     }else{
-  //       c=1;
-  //     }
+      if (data) {
+        console.log("if");
+        c = data.unique_id + 1;
+      }else{
+        c=1;
+      }
+      ///////test binary array 
+      var arrayofimg =[]
+      var imgdata=fs.readFileSync(req.files[0].path)
+      for(var i=0;i<4;i++){
+          arrayofimg.push(imgdata);
+      }
+      var detail = new Detail({
 
-  //     var detail = new Detail({
+        unique_id:c,
+        Name: req.body.title,
+        //data:fs.readFileSync(req.files[0].path),
+        data:arrayofimg,
+        });
 
-  //       unique_id:c,
-  //       Name: req.body.title,
-  //       data:fs.readFileSync(req.files[0].path),
-  //             });
-  //     detail.save(function(err, Person){
-  //       if(err)
-  //         console.log(err);
-  //       else
-  //         res.redirect('/');
+       detail.save(function(err, Person){
+        if(err)
+          console.log(err);
+        else
+          res.redirect('/');
 
-  //     });
+      });
 
-  //   }).sort({_id: -1}).limit(1);
+    }).sort({_id: -1}).limit(1);
 
-  // }
+  }
   ////////////////////upload to mongodb end
-  res.redirect('/');
+  //res.redirect('/');
 });
 
 app.post('/delete',function(req,res){////delete data from mongodb
@@ -167,6 +174,35 @@ app.post('/delete',function(req,res){////delete data from mongodb
    })
   res
   .redirect('/');
+});
+app.get('/:name', function(req, res) {
+  console.log(req.params.name);
+    binimgfordata =[];
+  // Then you can use the value of the id with req.params.id
+  // So you use it to get the data from your database:
+  var para = '"'+req.params.name+'"';
+  console.log(para);
+  //console.log(req.params.name.toString);
+  Detail.find({"Name":req.params.name}, function(err,data){
+    console.log(data)
+    if(err){
+      console.log(err);
+    }else{
+      
+      for(datas in data ){
+        binimg =[]
+        
+        for(i in data[datas].data){
+          var str = 'data:image/jpeg;base64,'+ (new Buffer.from(data[datas].data[i].buffer)).toString('base64');  
+          binimg.push(str);
+        }
+
+        binimgfordata.push(binimg)
+       }
+ 
+       res.render('index',{data:data,binimgfordata:binimgfordata,state:"showone"});//pass result to index.ejs
+    }
+  })
 });
 const { spawn} = require('child_process');
 const events = require('events');
