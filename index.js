@@ -22,7 +22,7 @@ mongoose.connect(' mongodb://127.0.0.1:27017/my_datablase',{ useNewUrlParser: tr
 var redis = require('redis');
 
 
-const PORT = process.env.PORT || 5000;
+//const PORT = process.env.PORT || 5000; //client
 const REDIS_PORT = process.env.PORT || 6379;
 
 const client = redis.createClient(REDIS_PORT);
@@ -30,7 +30,7 @@ const client = redis.createClient(REDIS_PORT);
 /////redis 
 
 
-// Cache middleware
+// Cache middleware used to get cached data only so is useless for this project 
 function cache(req, res, next) {
 	//console.log(req)
 	console.log("cache")
@@ -49,6 +49,7 @@ function cache(req, res, next) {
     }
   });
 }
+/////////////////////////// upload setting 
 const MAX_SIZE = 512000;
 var upload = multer({
 	dest: './uploads/',
@@ -68,6 +69,8 @@ var upload = multer({
   { callback(null, file.originalname );}
 
 }),
+
+/////////////////////  filter wrong file type
 
 fileFilter: function(req, file, callback) {
   var ext = path.extname(file.originalname)
@@ -117,12 +120,12 @@ app.get('/',function(req, res){
 var imgPath = './uploads/';
 
 app.post('/', upload.any(), function(req,res){////cache used to get video from redis  
-  data=fs.readFileSync(req.files[0].path);
-  app.set(req.files[0].originalname, data);
+  data=fs.readFileSync(req.files[0].path); //get binary data
+  app.set(req.files[0].originalname, data); //upload to redis
 
   console.log('uploaded to redis')
   /////////useless as all pass to redis
-  ///////////////////upload to mongodb start
+  ///////////////////upload to mongodb start testing only start 
   if(!req.body && !req.files){
     res.json({success: false});
   } else {    
@@ -136,12 +139,15 @@ app.post('/', upload.any(), function(req,res){////cache used to get video from r
       }else{
         c=1;
       }
-      ///////test binary array 
+     
       var arrayofimg =[]
-      var imgdata=fs.readFileSync(req.files[0].path)
-      for(var i=0;i<4;i++){
+      var imgdata=fs.readFileSync(req.files[0].path);
+      arrayofimg.push(imgdata);
+       ///////test binary array ////testing only start
+      for(var i=0;i<3;i++){
           arrayofimg.push(imgdata);
       }
+      /////////testing only start
       var detail = new Detail({
 
         unique_id:c,
@@ -161,7 +167,7 @@ app.post('/', upload.any(), function(req,res){////cache used to get video from r
     }).sort({_id: -1}).limit(1);
 
   }
-  ////////////////////upload to mongodb end
+  ////////////////////upload to mongodb end testing only end
   //res.redirect('/');
 });
 
