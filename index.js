@@ -122,54 +122,54 @@ app.post('/', upload.any(), function(req,res){////cache used to get video from r
   console.log('uploaded to redis')
   /////////useless as all pass to redis
   ///////////////////upload to mongodb start testing only start 
-if(!req.body && !req.files){
-    res.json({success: false});
-  } else {    
-    User_process.findOne({},function(err,data){
-        var user_process = new User_process({
-        username: req.files[0].originalname, //videoname 
-        status: "done", 
-        });
-       user_process.save(function(err, Person){
-        if(err)
-          console.log(err);
+// if(!req.body && !req.files){
+//     res.json({success: false});
+//   } else {    
+//     User_process.findOne({},function(err,data){
+//         var user_process = new User_process({
+//         username: req.files[0].originalname, //videoname 
+//         status: "done", 
+//         });
+//        user_process.save(function(err, Person){
+//         if(err)
+//           console.log(err);
         
 
-      });
-    }).sort({_id: -1}).limit(1);
-    var name = splitstring(req.files[0].originalname);
-    var schema_name = "user_"+name;
-    var Images = mongoose.model(schema_name, image_Schema);
-    module.exports = Images;
+//       });
+//     }).sort({_id: -1}).limit(1);
+//     var name = splitstring(req.files[0].originalname);
+//     var schema_name = "user_"+name;
+//     var Images = mongoose.model(schema_name, image_Schema);
+//     module.exports = Images;
 
-    var imagedata = (new Buffer.from(data)).toString('base64');
-    Images.findOne({},function(err,data){
-      var image = new Images({
-        "frameno": "1", //frame number
-        "name": req.files[0].originalname, //image name
-        "userid": "5dd3652b51c27c38305fd417", //user object id string
-        "base64": imagedata, //base64 encoded jpg,
-      });
-      image.save(function(err, Person){
-        if(err)
-          console.log(err);
+//     var imagedata = (new Buffer.from(data)).toString('base64');
+//     Images.findOne({},function(err,data){
+//       var image = new Images({
+//         "frameno": "1", //frame number
+//         "name": req.files[0].originalname, //image name
+//         "userid": "5dd3652b51c27c38305fd417", //user object id string
+//         "base64": imagedata, //base64 encoded jpg,
+//       });
+//       image.save(function(err, Person){
+//         if(err)
+//           console.log(err);
         
-      });
-    }).sort({_id: -1}).limit(1);
-   Images.findOne({},function(err,data){
-      var image = new Images({
-        "frameno": "2", //frame number
-        "name": req.files[0].originalname, //image name
-        "userid": "5dd3652b51c27c38305fd417", //user object id string
-        "base64": imagedata, //base64 encoded jpg,
-      });
-      image.save(function(err, Person){
-        if(err)
-          console.log(err);
+//       });
+//     }).sort({_id: -1}).limit(1);
+//    Images.findOne({},function(err,data){
+//       var image = new Images({
+//         "frameno": "2", //frame number
+//         "name": req.files[0].originalname, //image name
+//         "userid": "5dd3652b51c27c38305fd417", //user object id string
+//         "base64": imagedata, //base64 encoded jpg,
+//       });
+//       image.save(function(err, Person){
+//         if(err)
+//           console.log(err);
         
-      });
-    }).sort({_id: -1}).limit(1);
-  }
+//       });
+//     }).sort({_id: -1}).limit(1);
+//   }
   //////////////////////
 
   ////////////////////upload to mongodb end testing only end
