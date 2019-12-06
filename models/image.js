@@ -6,10 +6,7 @@ image_Schema = new Schema( {
     "name": String, //image name
     "userid": String, //user object id string
     "base64": String, //base64 encoded jpg,
-	added_date:{
-		type: Date,
-		default: Date.now
-	}
+
 }),
 Image = mongoose.model('Image', image_Schema);
 
