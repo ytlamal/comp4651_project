@@ -25,6 +25,7 @@
     "multer-gridfs-storage": "^4.0.0",
     "node-fetch": "^2.6.0",
     "nodemon": "^1.19.3",
+    "openfaas": "^0.1.1",
     "path": "^0.12.7",
     "redis": "^2.8.0",
     "sharp": "^0.23.1"

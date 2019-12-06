@@ -44,7 +44,7 @@
 				</div>
 			</form>
 			<% }else{ %>
-				<h2>Show <%=data[0].name  %></h2>			
+				<h2>Show <%= name  %></h2>			
 			<% } %>
 						
 		</div>
@@ -57,9 +57,9 @@
 					<div class="caption">
 						
 						
-						<h3><%= data[i].name %>:<%= data[i].status %></h3>
+						<h3><%= data[i].username %>:<%= data[i].status %></h3>
 						
-						<a href="/<%= name[i] %>">Visit <%= data[i].name %>!</a>
+						<a href="/<%= name[i] %>">Visit <%= data[i].username %>!</a>
 						<!-- <h3><%= data[i]._id %></h3> -->
 						<!-- <img src="<%= data[i].image1 %>" class = "img-thumbnail">
 						<img src="<%= data[i].image2 %>" class = "img-thumbnail"> -->
@@ -99,7 +99,7 @@
      }
 
      setTimeout(refresh, 1000);
-</script>
+
 	</script>>
 </body>
 </html>

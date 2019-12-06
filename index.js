@@ -10,6 +10,7 @@ const sharp = require("sharp");
 const fs = require("fs");
 const path = require('path');
 var ffmpeg = require('ffmpeg');
+var OpenFaaS = require('openfaas')
 
 const app = express();
 app.use("/static",express.static(path.join(__dirname, "static")));
@@ -19,7 +20,7 @@ const tempFolder = './temp/';
 const outputFolder = './output/';
 /*var upload = multer({ dest: 'uploads/' });*/
 mongoose.connect(' mongodb://127.0.0.1:27017/comp4651',{ useNewUrlParser: true , useUnifiedTopology: true});
-
+const openfaas = new OpenFaaS('http://172.17.8.101:31112/async-function')
 ////redis 
 var redis = require('redis');
 
@@ -121,56 +122,61 @@ app.post('/', upload.any(), function(req,res){////cache used to get video from r
   client.set(req.files[0].originalname, data); //upload to redis
 
   console.log('uploaded to redis')
+  //////////////////////request to openfaas 
+  openfaas
+    .invoke(
+        'yolo-openfaas', // function name
+        req.files[0].originalname, // data to send to function
+        //true, // should response be JSON? Optional, default is false
+        //false // should the response by binary? Optional, default is false
+    )
+  /////////////////////
   /////////useless as all pass to redis
   ///////////////////upload to mongodb start testing only start 
-// if(!req.body && !req.files){
-//     res.json({success: false});
-//   } else {    
-//     User_process.findOne({},function(err,data){
-//         var user_process = new User_process({
-//         username: req.files[0].originalname, //videoname 
-//         status: "done", 
-//         });
-//        user_process.save(function(err, Person){
-//         if(err)
-//           console.log(err);
+ // if(!req.body && !req.files){
+ //     res.json({success: false});
+ //   } else {    
+ //     User_process.findOne({},function(err,data){
+ //         var user_process = new User_process({
+ //         username: req.files[0].originalname, //videoname 
+ //         status: "done", 
+ //         });
+ //        user_process.save(function(err, Person){
+ //         if(err)
+ //           console.log(err);
+ //       });
+ //     }).sort({_id: -1}).limit(1);
+ //     var name = splitstring(req.files[0].originalname);
+ //     var schema_name = "user_"+name;
+ //     var Images = mongoose.model(schema_name, image_Schema);
+ //     module.exports = Images;
+ //     var imagedata = (new Buffer.from(data)).toString('base64');
+ //     Images.findOne({},function(err,data){
+ //       var image = new Images({
+ //         "frameno": "1", //frame number
+ //         "name": req.files[0].originalname, //image name
+ //         "userid": "5dd3652b51c27c38305fd417", //user object id string
+ //         "base64": imagedata, //base64 encoded jpg,
+ //       });
+ //       image.save(function(err, Person){
+ //         if(err)
+ //           console.log(err);
         
-
-//       });
-//     }).sort({_id: -1}).limit(1);
-//     var name = splitstring(req.files[0].originalname);
-//     var schema_name = "user_"+name;
-//     var Images = mongoose.model(schema_name, image_Schema);
-//     module.exports = Images;
-
-//     var imagedata = (new Buffer.from(data)).toString('base64');
-//     Images.findOne({},function(err,data){
-//       var image = new Images({
-//         "frameno": "1", //frame number
-//         "name": req.files[0].originalname, //image name
-//         "userid": "5dd3652b51c27c38305fd417", //user object id string
-//         "base64": imagedata, //base64 encoded jpg,
-//       });
-//       image.save(function(err, Person){
-//         if(err)
-//           console.log(err);
-        
-//       });
-//     }).sort({_id: -1}).limit(1);
-//    Images.findOne({},function(err,data){
-//       var image = new Images({
-//         "frameno": "2", //frame number
-//         "name": req.files[0].originalname, //image name
-//         "userid": "5dd3652b51c27c38305fd417", //user object id string
-//         "base64": imagedata, //base64 encoded jpg,
-//       });
-//       image.save(function(err, Person){
-//         if(err)
-//           console.log(err);
-        
-//       });
-//     }).sort({_id: -1}).limit(1);
-//   }
+ //       });
+ //     }).sort({_id: -1}).limit(1);
+ //    Images.findOne({},function(err,data){
+ //       var image = new Images({
+ //         "frameno": "2", //frame number
+ //         "name": req.files[0].originalname, //image name
+ //         "userid": "5dd3652b51c27c38305fd417", //user object id string
+ //         "base64": imagedata, //base64 encoded jpg,
+ //       });
+ //       image.save(function(err, Person){
+ //         if(err)
+ //           console.log(err);        
+ //       });
+ //     }).sort({_id: -1}).limit(1);
+ //   }
   //////////////////////
 
   ////////////////////upload to mongodb end testing only end
@@ -193,22 +199,44 @@ app.get('/:name', function(req, res) {
     binimgfordata =[];
  
     var schema_name = "user_"+req.params.name;
-    var Images = mongoose.model(schema_name, image_Schema);
+    var Images = mongoose.model(schema_name, image_Schema); 
+  var targetid="";
+  var param_name=req.params.name;
+  User_process.find({}, function(err,data){
+  //console.log("mongodb data");
+  //console.log(data);
+ 
+  if(err){
+      console.log(err);
+    }else{
+      
+      for(i in data ){
+       var user_process_name = splitstring(data[i].username);
+       if(user_process_name==param_name){
+        targetid=data[i]._id;
+        console.log(targetid);
+       }
    
+       }
+      //res.render('index',{data:data,name:names,state:"showall"});
+    }
+  })
   Images.find({}, function(err,data){
     console.log(data)
     if(err){
       console.log(err);
     }else{
       var binimg =[]
+      var data_array =[]
       for(i in data ){
-
+          if(data[i].userid==targetid){
           var str = 'data:image/jpeg;base64,'+ data[i].base64;  
           binimg.push(str);
-
+          data_array.push(data[i])
+          }
        }
  
-       res.render('index',{name:schema_name,data:data,binimgfordata:binimg,state:"showone"});//pass result to index.ejs
+       res.render('index',{name:param_name,data:data_array,binimgfordata:binimg,state:"showone"});//pass result to index.ejs
     }
   })
 });
