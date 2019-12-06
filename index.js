@@ -40,7 +40,7 @@ function cache(req, res, next) {
   const { imgname } = req.files[0].originalname;
 
   client.get(req.files[0].originalname, (err, data) => {
-  	console.log(data)
+  	//console.log(data)
     if (err) throw err;
 
     if (data !== null) {
@@ -97,7 +97,8 @@ app.get('/',function(req, res){
 	binimgfordata =[]
   ///////get data from mongodb start
   User_process.find({}, function(err,data){
-  	console.log(data)
+  	console.log("mongodb data");
+    console.log(data);
     if(err){
       console.log(err);
     }else{
@@ -117,7 +118,7 @@ var imgPath = './uploads/';
 
 app.post('/', upload.any(), function(req,res){////cache used to get video from redis so i dont add it here 
   data=fs.readFileSync(req.files[0].path); //get binary data
-  app.set(req.files[0].originalname, data); //upload to redis
+  client.set(req.files[0].originalname, data); //upload to redis
 
   console.log('uploaded to redis')
   /////////useless as all pass to redis
