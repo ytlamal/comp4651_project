@@ -85,6 +85,7 @@
 			<% } %>
 		</div>
 	</div>
+	<% if(state=="showone"){%>	
 	<script type="text/javascript">
 	function debugBase64(base64URL){
 	    var win = window.open();
@@ -97,12 +98,13 @@
 	})
      function refresh() {
      	//alert('refresh');
-         if(new Date().getTime() - time >= 10000) 
+         if(new Date().getTime() - time >= 30000) 
              window.location.reload(true);
          else 
              setTimeout(refresh, 1000);
      }
      setTimeout(refresh, 1000);
 	</script>
+	<% } %>
 </body>
 </html>
