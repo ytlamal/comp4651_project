@@ -19,33 +19,32 @@ app.use("/output",express.static(path.join(__dirname, "output")));
 const tempFolder = './temp/';
 const outputFolder = './output/';
 /*var upload = multer({ dest: 'uploads/' });*/
-mongoose.connect(' mongodb://127.0.0.1:27017/comp4651',{ useNewUrlParser: true , useUnifiedTopology: true});
-const openfaas = new OpenFaaS('http://172.17.8.101:31112/async-function')
+const openfaas = new OpenFaaS('http://gateway.openfaas:8080')
+////redis 
+mongoose.connect('mongodb://dev-mongodb.openfaas-fn:27017/comp4651',{ useNewUrlParser: true , useUnifiedTopology: true});
+
 ////redis 
 var redis = require('redis');
-
-
-//const PORT = process.env.PORT || 5000; //client
-const REDIS_PORT = process.env.PORT || 6379;
-
-const client = redis.createClient(REDIS_PORT);
-
-/////redis 
+const client = redis.createClient({
+          host : "dev-redis-master.openfaas-fn"
+          // no_ready_check: true,
+          // auth_pass: "secretpassword",                                                                                                                                                           
+});    
 
 
 // Cache middleware used to get cached data only so is useless for this project 
 function cache(req, res, next) {
-	//console.log(req)
-	console.log("cache")
-	console.log(req.files[0].originalname)
+  //console.log(req)
+  console.log("cache")
+  console.log(req.files[0].originalname)
   const { imgname } = req.files[0].originalname;
 
   client.get(req.files[0].originalname, (err, data) => {
-  	//console.log(data)
+    //console.log(data)
     if (err) throw err;
 
     if (data !== null) {
-    	console.log("redis success")//i use this to check whether success or not
+      console.log("redis success")//i use this to check whether success or not
        
     } else {
       next();
@@ -55,8 +54,8 @@ function cache(req, res, next) {
 /////////////////////////// upload setting 
 const MAX_SIZE = 512000;
 var upload = multer({
-	dest: './uploads/',
-	storage: multer.diskStorage({
+  dest: './uploads/',
+  storage: multer.diskStorage({
 
 
   destination: function (req, file, callback) {
@@ -95,21 +94,24 @@ app.use(express.static('uploads'));
 
 ////////main page
 app.get('/',function(req, res){
-	binimgfordata =[]
+  binimgfordata =[]
   ///////get data from mongodb start
   User_process.find({}, function(err,data){
-  	console.log("mongodb data");
+    console.log("mongodb data");
     console.log(data);
     if(err){
       console.log(err);
     }else{
-    	var names=[];
-    	for(i in data ){
-       var name = splitstring(data[i].username);
+      var names=[];
+      var fileType=[];
+      for(i in data ){
+       var tmp = splitstring(data[i].username);
+       var name = tmp[0];
+       var type = tmp[1];
        names.push(name);
-   
-    	 }
-      res.render('index',{data:data,name:names,state:"showall"});
+       fileType.push(type);
+       }
+      res.render('index',{data:data,name:names,types:fileType,state:"showall"});
     }
   })
   ///////get data from mongodb end
@@ -125,7 +127,7 @@ app.post('/', upload.any(), function(req,res){////cache used to get video from r
   //////////////////////request to openfaas 
   openfaas
     .invoke(
-        'yolo-openfaas', // function name
+        'async-function/yolo-openfaas', // function name
         req.files[0].originalname, // data to send to function
         //true, // should response be JSON? Optional, default is false
         //false // should the response by binary? Optional, default is false
@@ -197,11 +199,11 @@ app.post('/delete',function(req,res){////delete data from mongodb
 app.get('/:name', function(req, res) {
   console.log(req.params.name);
     binimgfordata =[];
+    var param_name = req.params.name.replace('_','.');
  
-    var schema_name = "user_"+req.params.name;
-    var Images = mongoose.model(schema_name, image_Schema); 
+    var schema_name = "user_"+param_name;
+    var Images = mongoose.model('Image', image_Schema, schema_name); 
   var targetid="";
-  var param_name=req.params.name;
   User_process.find({}, function(err,data){
   //console.log("mongodb data");
   //console.log(data);
@@ -211,7 +213,7 @@ app.get('/:name', function(req, res) {
     }else{
       
       for(i in data ){
-       var user_process_name = splitstring(data[i].username);
+       var user_process_name = data[i].username;
        if(user_process_name==param_name){
         targetid=data[i]._id;
         console.log(targetid);
@@ -248,7 +250,7 @@ var arrayofimage=[];
 function splitstring(str){
 
   var res = str.split(".");
-  return res[0];
+  return res;
 }
 function base64_encode(file) {//////i copied from web and not sure it works 
     // read binary data
@@ -266,20 +268,3 @@ function base64_decode(base64str, file) {//////i copied from web and not sure it
 
 var port = 4000;
 app.listen( port, function(){ console.log('listening on port '+port); } );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
