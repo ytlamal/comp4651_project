@@ -101,18 +101,18 @@
 	    
 	}
 
-     var time = new Date().getTime();
-     window.addEventListener('load', function () {
-	time = new Date().getTime(); 
-	})
-     function refresh() {
-     	//alert('refresh');
-         if(new Date().getTime() - time >= 30000) 
-             window.location.reload(true);
-         else 
-             setTimeout(refresh, 1000);
-     }
-     setTimeout(refresh, 1000);
+ //     var time = new Date().getTime();
+ //     window.addEventListener('load', function () {
+	// time = new Date().getTime(); 
+	// })
+ //     function refresh() {
+ //     	//alert('refresh');
+ //         if(new Date().getTime() - time >= 30000) 
+ //             window.location.reload(true);
+ //         else 
+ //             setTimeout(refresh, 1000);
+ //     }
+ //     setTimeout(refresh, 1000);
 	</script>
 	<% } %>
 	<% if(state=="showall"){%>
@@ -122,12 +122,13 @@
 	 document.getElementById("autofresh").text="disable auto refresh";
      window.addEventListener('load', function () {
 	time = new Date().getTime(); 
+	setTimeout(refresh, 1000);
 	})
      function refresh() {
 		
-     	if(autorefesh){
-     		
-         if(new Date().getTime() - time >= 30000){ 
+     	if(autorefesh==true){
+     		//alert('enter')
+         if(new Date().getTime() - time >= 1000){ 
          	//alert(autorefesh);
              window.location.reload(true);
          }else {
