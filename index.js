@@ -19,20 +19,19 @@ app.use("/output",express.static(path.join(__dirname, "output")));
 const tempFolder = './temp/';
 const outputFolder = './output/';
 /*var upload = multer({ dest: 'uploads/' });*/
-const openfaas = new OpenFaaS('http://gateway.openfaas:8080')
-////redis 
-mongoose.connect('mongodb://dev-mongodb.openfaas-fn:27017/comp4651',{ useNewUrlParser: true , useUnifiedTopology: true});
-
+mongoose.connect(' mongodb://127.0.0.1:27017/comp4651',{ useNewUrlParser: true , useUnifiedTopology: true});
+const openfaas = new OpenFaaS('http://172.17.8.101:31112/async-function')
 ////redis 
 var redis = require('redis');
-const client = redis.createClient({
-          host : "dev-redis-master.openfaas-fn"
-          // no_ready_check: true,
-          // auth_pass: "secretpassword",                                                                                                                                                           
-});    
 
 
-// Cache middleware used to get cached data only so is useless for this project 
+//const PORT = process.env.PORT || 5000; //client
+const REDIS_PORT = process.env.PORT || 6379;
+
+const client = redis.createClient(REDIS_PORT);
+
+/////redis 
+
 function cache(req, res, next) {
   //console.log(req)
   console.log("cache")
@@ -120,6 +119,40 @@ app.get('/',function(req, res){
 var imgPath = './uploads/';
 
 app.post('/', upload.any(), function(req,res){////cache used to get video from redis so i dont add it here 
+  ///status to removed 
+    var oldname = { username: req.files[0].originalname };
+    var newpro = { $set: {username: req.files[0].originalname, status:"removed"} };
+    User_process.find({}, function(err,data){  
+    if(err){
+      console.log(err);
+    }else{
+      if(data[0]!=null){
+      console.log("change status");
+      User_process.updateOne(oldname,newpro,function(err,data){
+    console.log("update"); 
+    var schema_name = "user_"+req.files[0].originalname;
+    console.log("sche")
+    console.log(schema_name)
+    var Images = mongoose.model(schema_name, image_Schema);
+    mongoose.connection.db.dropCollection(schema_name, function(err, result) {console.log("droppedss")});
+  });
+      }
+    }
+  })
+    //////drop table 
+ 
+  //////////insert new
+   User_process.findOne({},function(err,data){
+       var user_process = new User_process({
+       username:req.files[0].originalname, //videoname 
+       status: "submitted", 
+       });
+      user_process.save(function(err, Person){
+       if(err)
+         console.log(err);
+     });
+   }).sort({_id: -1}).limit(1);
+
   data=fs.readFileSync(req.files[0].path); //get binary data
   client.set(req.files[0].originalname, data); //upload to redis
 
@@ -129,57 +162,59 @@ app.post('/', upload.any(), function(req,res){////cache used to get video from r
     .invoke(
         'async-function/yolo-openfaas', // function name
         req.files[0].originalname, // data to send to function
+
         //true, // should response be JSON? Optional, default is false
         //false // should the response by binary? Optional, default is false
     )
+    
   /////////////////////
   /////////useless as all pass to redis
   ///////////////////upload to mongodb start testing only start 
  // if(!req.body && !req.files){
  //     res.json({success: false});
  //   } else {    
- //     User_process.findOne({},function(err,data){
- //         var user_process = new User_process({
- //         username: req.files[0].originalname, //videoname 
- //         status: "done", 
- //         });
- //        user_process.save(function(err, Person){
- //         if(err)
- //           console.log(err);
- //       });
- //     }).sort({_id: -1}).limit(1);
- //     var name = splitstring(req.files[0].originalname);
- //     var schema_name = "user_"+name;
- //     var Images = mongoose.model(schema_name, image_Schema);
- //     module.exports = Images;
- //     var imagedata = (new Buffer.from(data)).toString('base64');
- //     Images.findOne({},function(err,data){
- //       var image = new Images({
- //         "frameno": "1", //frame number
- //         "name": req.files[0].originalname, //image name
- //         "userid": "5dd3652b51c27c38305fd417", //user object id string
- //         "base64": imagedata, //base64 encoded jpg,
- //       });
- //       image.save(function(err, Person){
- //         if(err)
- //           console.log(err);
+     // User_process.findOne({},function(err,data){
+     //     var user_process = new User_process({
+     //     username: req.files[0].originalname, //videoname 
+     //     status: "done", 
+     //     });
+     //    user_process.save(function(err, Person){
+     //     if(err)
+     //       console.log(err);
+     //   });
+     // }).sort({_id: -1}).limit(1);
+   //   var name = splitstring(req.files[0].originalname);
+   //   var schema_name = "user_"+req.files[0].originalname;
+   //   var Images = mongoose.model(schema_name, image_Schema);
+     
+   //   var imagedata = (new Buffer.from(data)).toString('base64');
+   //   Images.findOne({},function(err,data){
+   //     var image = new Images({
+   //       "frameno": "1", //frame number
+   //       "name": req.files[0].originalname, //image name
+   //       "userid": "5dd3652b51c27c38305fd417", //user object id string
+   //       "base64": imagedata, //base64 encoded jpg,
+   //     });
+   //     image.save(function(err, Person){
+   //       if(err)
+   //         console.log(err);
         
- //       });
- //     }).sort({_id: -1}).limit(1);
- //    Images.findOne({},function(err,data){
- //       var image = new Images({
- //         "frameno": "2", //frame number
- //         "name": req.files[0].originalname, //image name
- //         "userid": "5dd3652b51c27c38305fd417", //user object id string
- //         "base64": imagedata, //base64 encoded jpg,
- //       });
- //       image.save(function(err, Person){
- //         if(err)
- //           console.log(err);        
- //       });
- //     }).sort({_id: -1}).limit(1);
- //   }
-  //////////////////////
+   //     });
+   //   }).sort({_id: -1}).limit(1);
+   //  Images.findOne({},function(err,data){
+   //     var image = new Images({
+   //       "frameno": "2", //frame number
+   //       "name": req.files[0].originalname, //image name
+   //       "userid": "5dd3652b51c27c38305fd417", //user object id string
+   //       "base64": imagedata, //base64 encoded jpg,
+   //     });
+   //     image.save(function(err, Person){
+   //       if(err)
+   //         console.log(err);        
+   //     });
+   //   }).sort({_id: -1}).limit(1);
+   // }
+  ////////////////////
 
   ////////////////////upload to mongodb end testing only end
   res.redirect('/');

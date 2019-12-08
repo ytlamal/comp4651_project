@@ -49,8 +49,16 @@
 						
 		</div>
 		<div class="row">
+
+			<% if(state=="showall"){%>		
+			<div class="row">
+			<a id="autofresh" href"#" role="button" class="btn btn-success" onclick=disablerefresh() >disable auto refresh</a>
+			<a id="refresh" href"#" role="button" class="btn btn-success" onclick=refreshbu() >Refresh</a>
+			</div>
+			<% } %>
 			<% for (var i = 0; i < data.length; i++) { %>
 			<% if(state=="showall"){%>		
+		
 			<% if(data[i].status!="removed"){%>
 			<div class="col-md-4">
 				<div class="thumbnail">
@@ -89,7 +97,8 @@
 	<script type="text/javascript">
 	function debugBase64(base64URL){
 	    var win = window.open();
-	    win.document.write('<iframe src="' + base64URL  + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
+	    win.document.write('<iframe src="' + base64URL  + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen sandbox></iframe>');
+	    
 	}
 
      var time = new Date().getTime();
@@ -106,5 +115,48 @@
      setTimeout(refresh, 1000);
 	</script>
 	<% } %>
+	<% if(state=="showall"){%>
+	<script type="text/javascript">
+	 var time = new Date().getTime();
+	 autorefesh =true;
+	 document.getElementById("autofresh").text="disable auto refresh";
+     window.addEventListener('load', function () {
+	time = new Date().getTime(); 
+	})
+     function refresh() {
+		
+     	if(autorefesh){
+     		
+         if(new Date().getTime() - time >= 30000){ 
+         	//alert(autorefesh);
+             window.location.reload(true);
+         }else {
+             setTimeout(refresh, 1000);
+         }
+     	}
+     }
+    
+	function disablerefresh(){
+		//alert('change');
+		if(autorefesh){
+			document.getElementById("autofresh").text="enable auto refresh";
+			autorefesh =false;
+		}else{
+			autorefesh =true;
+			document.getElementById("autofresh").text="disable auto refresh";
+			setTimeout(refresh, 1000);
+		}
+
+		
+	}
+	function refreshbu(){
+		 
+        window.location.reload(true);
+        
+	}
+	</script>
+		<% } %>
+	
+	
 </body>
 </html>
